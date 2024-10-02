@@ -5,6 +5,7 @@ const nextButton = document.getElementById("next");
 const previousButton = document.getElementById("previous");
 const shuffleButton = document.getElementById("shuffle");
 
+// 노래 데이터 변수 저장
 const allSongs = [
   {
     id: 0,
@@ -78,6 +79,7 @@ const allSongs = [
   },
 ];
 
+// 플레이어 생성: 노래 데이터, 현재 재생곡, 현재 재생구간
 const audio = new Audio();
 let userData = {
   songs: [...allSongs],
@@ -85,25 +87,30 @@ let userData = {
   songCurrentTime: 0,
 };
 
+// 노래 재생함수
 const playSong = (id) => {
   const song = userData?.songs.find((song) => song.id === id);
   audio.src = song.src;
   audio.title = song.title;
 
+  // 다른곡 재생하면 0초부터 시작
   if (userData?.currentSong === null || userData?.currentSong.id !== song.id) {
     audio.currentTime = 0;
   } else {
     audio.currentTime = userData?.songCurrentTime;
   }
+  // 현재 재생곡 업데이트
   userData.currentSong = song;
   playButton.classList.add("playing");
 
+  // 현재 재생곡으로 디스플레이 업데이트
   highlightCurrentSong();
   setPlayerDisplay();
   setPlayButtonAccessibleText();
   audio.play();
 };
 
+// 일시정지 함수
 const pauseSong = () => {
   userData.songCurrentTime = audio.currentTime;
 
@@ -111,10 +118,13 @@ const pauseSong = () => {
   audio.pause();
 };
 
+// 다음곡 재생 함수
 const playNextSong = () => {
+  // 현재 재생곡 없으면, 1번 트랙 재생
   if (userData?.currentSong === null) {
     playSong(userData?.songs[0].id);
   } else {
+    // 있으면 현재곡 인덱스 +1하고, 다음곡 재생
     const currentSongIndex = getCurrentSongIndex();
     const nextSong = userData?.songs[currentSongIndex + 1];
 
@@ -122,9 +132,12 @@ const playNextSong = () => {
   }
 };
 
+// 이전곡 재생 함수
 const playPreviousSong = () => {
+  // 현재 재생곡 없으면 아무일 없음
   if (userData?.currentSong === null) return;
   else {
+    // 있으면, 인덱스 -1 하고 이전곡 재생
     const currentSongIndex = getCurrentSongIndex();
     const previousSong = userData?.songs[currentSongIndex - 1];
 
@@ -132,18 +145,23 @@ const playPreviousSong = () => {
   }
 };
 
+// 셔플 함수
+// - 0.5 함으로써 양수와 음수가 섞이고 셔플기능이 제대로 작동
+// - 0.5 하지 않으면, 항상 양수만 나오고 노래개 제대로 섞이지 않음
 const shuffle = () => {
   userData?.songs.sort(() => Math.random() - 0.5);
   userData.currentSong = null;
   userData.songCurrentTime = 0;
 
-  renderSongs(userData?.songs);
-  pauseSong();
+  renderSongs(userData?.songs); // 랜덤으로 섞인 플레이리스트로 새로 플레이리스트 렌더링
+  pauseSong(); // 노래 일시정지
   setPlayerDisplay();
   setPlayButtonAccessibleText();
 };
 
+// 노래 삭제 함수
 const deleteSong = (id) => {
+  // 삭제하려는 id가 현재 재생중인 id와 동일한지 확인해서, 현재 재생중인 노래를 없애고, 구간을 0으로 업데이트
   if (userData?.currentSong?.id === id) {
     userData.currentSong = null;
     userData.songCurrentTime = 0;
@@ -152,20 +170,24 @@ const deleteSong = (id) => {
     setPlayerDisplay();
   }
 
+  // 삭제하려는 id만 빼고, 필터링
   userData.songs = userData?.songs.filter((song) => song.id !== id);
   renderSongs(userData?.songs);
   highlightCurrentSong();
   setPlayButtonAccessibleText();
 
+  // 노래 길이가 0이라면, 즉 리스트에 아무 노래도 없으면
   if (userData?.songs.length === 0) {
     const resetButton = document.createElement("button");
     const resetText = document.createTextNode("Reset Playlist");
 
+    // 리스트 리셋 버튼을 가동
     resetButton.id = "reset";
     resetButton.ariaLabel = "Reset playlist";
     resetButton.appendChild(resetText);
     playlistSongs.appendChild(resetButton);
 
+    // 리셋버튼을 누르면, 원래 노래들 새로 받아옴
     resetButton.addEventListener("click", () => {
       userData.songs = [...allSongs];
 
@@ -176,6 +198,7 @@ const deleteSong = (id) => {
   }
 };
 
+// 디스플레이 설정 함수
 const setPlayerDisplay = () => {
   const playingSong = document.getElementById("player-song-title");
   const songArtist = document.getElementById("player-song-artist");
@@ -186,12 +209,14 @@ const setPlayerDisplay = () => {
   songArtist.textContent = currentArtist ? currentArtist : "";
 };
 
+// 현재 재생중인 노래 하이라이트 함수
 const highlightCurrentSong = () => {
   const playlistSongElements = document.querySelectorAll(".playlist-song");
   const songToHighlight = document.getElementById(
     `song-${userData?.currentSong?.id}`
   );
 
+  // 접근성 향상을 위한 보조 코드
   playlistSongElements.forEach((songEl) => {
     songEl.removeAttribute("aria-current");
   });
@@ -199,6 +224,7 @@ const highlightCurrentSong = () => {
   if (songToHighlight) songToHighlight.setAttribute("aria-current", "true");
 };
 
+// 플레이리스트 렌더링 함수
 const renderSongs = (array) => {
   const songsHTML = array
     .map((song) => {
@@ -216,6 +242,8 @@ const renderSongs = (array) => {
       </li>
       `;
     })
+    // 각 곡들 데이터를 하나의 문자열로 엮기 위함.
+    // HTML 요소들은 ;나 ,로 구분되지 않음, 따라서 join에 "빈칸"을 줌.
     .join("");
 
   playlistSongs.innerHTML = songsHTML;
@@ -230,9 +258,12 @@ const setPlayButtonAccessibleText = () => {
   );
 };
 
+// 현재곡의 index 받아오는 함수
 const getCurrentSongIndex = () =>
   userData?.songs.indexOf(userData?.currentSong);
 
+// 재생버튼 이벤트
+// 현재 재생 중인 노래 없으면 1번 트랙부터
 playButton.addEventListener("click", () => {
   if (userData?.currentSong === null) {
     playSong(userData?.songs[0].id);
@@ -242,19 +273,21 @@ playButton.addEventListener("click", () => {
 });
 
 pauseButton.addEventListener("click", pauseSong);
-
 nextButton.addEventListener("click", playNextSong);
-
 previousButton.addEventListener("click", playPreviousSong);
-
 shuffleButton.addEventListener("click", shuffle);
 
+// ended: 오디오나 비디오가 끝났을 때, 트리거가 되는 이벤트
+// 현재 노래가 끝나면, 해당 노래의 인덱스를 불러오고 (currentSongIndex)
+// 거기에 +1을 해서 다음 노래 index를 불러옴 (nextSongIndex)
 audio.addEventListener("ended", () => {
   const currentSongIndex = getCurrentSongIndex();
   const nextSongExists = userData?.songs[currentSongIndex + 1] !== undefined;
 
+  // 다음곡이 존재하면 실행
   if (nextSongExists) {
     playNextSong();
+    // 존재하지 않으면 현재 재생곡 null
   } else {
     userData.currentSong = null;
     userData.songCurrentTime = 0;
@@ -265,6 +298,7 @@ audio.addEventListener("ended", () => {
   }
 });
 
+// 플레이리스트를 곡명 순으로 나열
 const sortSongs = () => {
   userData?.songs.sort((a, b) => {
     if (a.title < b.title) {
