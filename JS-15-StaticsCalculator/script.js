@@ -1,6 +1,8 @@
+// 1. 평균값 구하기
 const getMean = (array) =>
   array.reduce((acc, el) => acc + el, 0) / array.length;
 
+// 2. 오름차순 정렬 시, 중간 인덱스 숫자
 const getMedian = (array) => {
   const sorted = array.toSorted((a, b) => a - b);
   const median =
@@ -10,6 +12,7 @@ const getMedian = (array) => {
   return median;
 };
 
+// 3. 갯수가 가장 많은 숫자
 const getMode = (array) => {
   const counts = {};
   array.forEach((el) => {
@@ -25,27 +28,33 @@ const getMode = (array) => {
   return mode.join(", ");
 };
 
+// 4. 가장 작은 숫자와 가장 큰 숫자간의 차이
 const getRange = (array) => {
   return Math.max(...array) - Math.min(...array);
 };
 
+// 5. 분산
 const getVariance = (array) => {
   const mean = getMean(array);
+
   const variance =
     array.reduce((acc, el) => {
       const difference = el - mean;
       const squared = difference ** 2;
       return acc + squared;
     }, 0) / array.length;
+
   return variance;
 };
 
+// 6. 표준 편차
 const getStandardDeviation = (array) => {
   const variance = getVariance(array);
   const standardDeviation = Math.sqrt(variance);
   return standardDeviation;
 };
 
+// 7. 계산 버튼 이벤트
 const calculate = () => {
   const value = document.querySelector("#numbers").value;
   const array = value.split(/,\s*/g);
