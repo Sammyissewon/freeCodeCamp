@@ -1,5 +1,8 @@
 <!DOCTYPE html>
 <html>
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/redux/4.1.0/redux.min.js"></script>
+  </head>
   <body>
     <!-- 코드 모듈화 -->
     <div id="subject"></div>
@@ -8,6 +11,7 @@
     <div id="content"></div>
 
     <script>
+      // 1. 페이지 제목 렌더링 함수
       const subject = () => {
         document.querySelector("#subject").innerHTML = `
             <header>
@@ -16,42 +20,185 @@
               </header>
             `;
       };
-
+      // 2. 목차(Table Of Contents) 렌더링 함수
       const TOC = () => {
+        const state = store.getState(); // 현재 State를 불러오고
+        const liTags = state.contents // 불러온 State의 Contents만 저장
+          .map(
+            (content) => `
+            <li>
+              <a
+                onclick="
+                event.preventDefault();
+                let action = {type: 'SELECT', id: ${content.id}}; //클릭했을 때, dispatch실행
+                store.dispatch(action);
+                "
+                href="${content.id}">${content.title}</a>
+            </li>
+            `
+          )
+          .join(""); // map으로 배열을 만들었기 때문에, 이를 문자열로 변환하여 결합
+
         document.querySelector("#toc").innerHTML = `
-        <nav>
+          <nav>
             <ol>
-              <li><a href="1.html">HTML</a></li>
-              <li><a href="2.html">CSS</a></li>
+              ${liTags}  // 리스트에 삽입
             </ol>
           </nav>
         `;
       };
 
+      // 글작성, 글삭제 모드 변환 함수
       const control = () => {
         document.querySelector("#control").innerHTML = `
         <ul>
-            <li><a href="/create">create</a></li>
-            <li><input type="button" value="delete" /></li>
+            // Create 버튼을 누르면, 모드를 'CREATE'로 전환해서 글쓰기 준비
+            <li><a onclick= "event.preventDefault(); store.dispatch({
+              type: 'CHANGE_MODE', mode: 'CREATE'
+            })"
+                href="/create">Create</a></li>
+            
+            // Delete 버튼을 누르면, 'DELETE' 모드로 전환
+            <li><input onclick="store.dispatch({type: 'DELETE'})" type="button" value="Delete" /></li>
           </ul>
         `;
       };
 
+      // 새 글 제출 함수
       const article = () => {
-        document.querySelector("#content").innerHTML = `
-        <article>
-            <h2>HTML</h2>
-            HTML is...
-          </article>
-        `;
+        const state = store.getState();
+        // 현재 "CREATE" 모드라면, 이하 글작성 양식 렌더링
+        if (state.mode === "CREATE") {
+          document.querySelector("#content").innerHTML = `
+            <article>
+                <form onsubmit="
+                    event.preventDefault();
+
+                    <!-- this는 해당 form 양식을 의미함 -->
+                    const _title = this.title.value;
+                    const _desc = this.desc.value;
+
+                    <!-- 타입+글제목+글내용을 dispatch에 담아서, reducer에게 명령 -->
+                    <!-- 'CREATE'타입으로 액션 -->
+                    store.dispatch({
+                        type: 'CREATE',
+                        title: _title,
+                        desc: _desc,
+                    })
+                ">
+                    <p>
+                        <input type="text" name="title" placeholder="title">
+                    </p>
+                    <p>
+                        <textarea name="desc" placeholder="description"></textarea>
+                    </p>
+                    <p>
+                        <input type="submit">
+                    </p>
+                </form>
+            </article>
+            `;
+          // 현재 모드가 "READ"라면, 목차에 있는 글 읽기 모드로 전환
+        } else if (state.mode === "READ") {
+          // find 메서드로 해당 글 찾기
+          const selectedContent = state.contents.find(
+            (content) => content.id === state.selected_id
+          );
+
+          if (selectedContent) {
+            document.querySelector("#content").innerHTML = `
+              <article>
+                <h2>${selectedContent.title}</h2>
+                ${selectedContent.desc}
+              </article>
+            `;
+          }
+        } else if (state.mode === "Welcome") {
+          document.querySelector("#content").innerHTML = `
+            <article>
+              <h2>Welcome</h2>
+              Hello, Redux!
+            </article>
+          `;
+        }
       };
 
-      // 한눈에 파악하기 쉽고, 재활용성이 높은 작업
+      // 리듀서 함수
+      const reducer = (state, action) => {
+        if (state === undefined) {
+          return {
+            // State 초기값
+            max_id: 2,
+            mode: "Welcome",
+            selected_id: 1,
+            contents: [
+              { id: 1, title: "HTML", desc: "HTML is..." },
+              { id: 2, title: "CSS", desc: "CSS is..." },
+            ],
+          };
+        }
+
+        let newState;
+
+        // 'SELECT' 액션을 취하면,
+        if (action.type === "SELECT") {
+          // 새로 선택된 글 ID로 state 복사 및 업데이트하고, 이를 store에 저장 -> 관련된 여러 컴포넌트에서 활용
+          newState = Object.assign({}, state, {
+            selected_id: action.id, // 클릭한 글의 id를 전달받고,
+            mode: "READ", // 그 글의 모드를 'READ'로 전환
+          });
+
+          // 'CREATE'를 취하면,
+        } else if (action.type === "CREATE") {
+          let newMaxId = state.max_id + 1;
+          // 원래 concat()은 배열 또는 문자열을 연걸(병합)하는 용도
+          // 인자가 없다면, 원본을 얕은 복사
+          // 원본 배열을 훼손하지 않기 위해서(불변성 원칙), 복사 배열을 만드는 것
+          let newContents = state.contents.concat();
+
+          // 새로 복사된 컨텐츠 배열에 새로운 id, 글제목, 글내용을 추가
+          newContents.push({
+            id: newMaxId,
+            title: action.title,
+            desc: action.desc,
+          });
+
+          // 새로운 state 객체에 현재 state와 새로운 state을 추가
+          newState = Object.assign({}, state, {
+            max_id: newMaxId,
+            contents: newContents,
+            mode: "READ", // 모드를 "CREATE" -> "READ"로 전환
+          });
+
+          // "DELETE"를 취하면, 선택한 글 ID 외의 것들로만 필터링
+        } else if (action.type === "DELETE") {
+          let newContents = state.contents.filter(
+            (content) => content.id !== state.selected_id
+          );
+          newState = Object.assign({}, state, {
+            contents: newContents,
+            mode: "Welcome",
+          });
+
+          // "CHANGE_MODE"를 취하면, 기존 State의 모드를 변환
+        } else if (action.type === "CHANGE_MODE") {
+          newState = Object.assign({}, state, { mode: action.mode });
+        }
+
+        console.log(action, state, newState);
+        return newState;
+      };
+
+      // store에 reducer 주입
+      const store = Redux.createStore(reducer);
+
+      store.subscribe(article);
+      store.subscribe(TOC);
+
       subject();
       TOC();
       control();
       article();
     </script>
-    <!-- ------ -->
   </body>
 </html>
