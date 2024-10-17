@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    <!-- 코드 모듈화 -->
+    <div id="subject"></div>
+    <div id="toc"></div>
+    <div id="control"></div>
+    <div id="content"></div>
+
+    <script>
+      const subject = () => {
+        document.querySelector("#subject").innerHTML = `
+            <header>
+                <h1>WEB</h1>
+                Hello, WEB!
+              </header>
+            `;
+      };
+
+      const TOC = () => {
+        document.querySelector("#toc").innerHTML = `
+        <nav>
+            <ol>
+              <li><a href="1.html">HTML</a></li>
+              <li><a href="2.html">CSS</a></li>
+            </ol>
+          </nav>
+        `;
+      };
+
+      const control = () => {
+        document.querySelector("#control").innerHTML = `
+        <ul>
+            <li><a href="/create">create</a></li>
+            <li><input type="button" value="delete" /></li>
+          </ul>
+        `;
+      };
+
+      const article = () => {
+        document.querySelector("#content").innerHTML = `
+        <article>
+            <h2>HTML</h2>
+            HTML is...
+          </article>
+        `;
+      };
+
+      // 한눈에 파악하기 쉽고, 재활용성이 높은 작업
+      subject();
+      TOC();
+      control();
+      article();
+    </script>
+    <!-- ------ -->
+  </body>
+</html>
